@@ -1,0 +1,10 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all-default
+  namespace: e-commerce
+spec:
+  # Пустой spec означает применение ко всем workloads в namespace
+  # Но с приоритетом ниже, чем у политик с селекторами
+  # Это создаёт базовый deny-all, который переопределяется специфичными политиками
+  {}

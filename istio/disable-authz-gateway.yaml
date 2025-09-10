@@ -1,0 +1,26 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: disable-authz-for-gateway
+  namespace: e-commerce
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  action: CUSTOM
+  provider:
+    name: "bypass-provider"
+  rules:
+  - {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bypass-provider
+  namespace: istio-system
+data:
+  bypass: |
+    {
+      "issuer": "testing@secure.istio.io",
+      "jwksUri": "https://raw.githubusercontent.com/istio/istio/release-1.20/security/tools/jwt/samples/jwks.json"
+    }

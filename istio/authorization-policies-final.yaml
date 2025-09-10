@@ -1,0 +1,149 @@
+# ===== API Gateway =====
+# Принимает внешний трафик и направляет к внутренним сервисам
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: api-gateway-authz
+  namespace: e-commerce
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  action: ALLOW
+  rules:
+  # Разрешаем трафик от Istio Ingress Gateway
+  - from:
+    - source:
+        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/*"]
+  # Разрешаем внешний трафик без mTLS (для публичного API)
+  - to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/api/*"]
+  # Health checks
+  - to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/health", "/healthz", "/ready", "/metrics"]
+---
+# ===== Catalog Service =====
+# Предоставляет информацию о продуктах
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: catalog-service-authz
+  namespace: e-commerce
+spec:
+  selector:
+    matchLabels:
+      app: catalog-service
+  action: ALLOW
+  rules:
+  # Доступ от API Gateway
+  - from:
+    - source:
+        principals: ["cluster.local/ns/e-commerce/sa/api-gateway"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/products", "/products/*"]
+  # Доступ от Cart Service
+  - from:
+    - source:
+        principals: ["cluster.local/ns/e-commerce/sa/cart-service"]
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/products/*"]
+  # Health checks
+  - to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/health", "/healthz", "/ready", "/metrics"]
+---
+# ===== Cart Service =====
+# Управляет корзиной покупок
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: cart-service-authz
+  namespace: e-commerce
+spec:
+  selector:
+    matchLabels:
+      app: cart-service
+  action: ALLOW
+  rules:
+  # Доступ от API Gateway
+  - from:
+    - source:
+        principals: ["cluster.local/ns/e-commerce/sa/api-gateway"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/cart/*", "/checkout"]
+  # Health checks
+  - to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/health", "/healthz", "/ready", "/metrics"]
+---
+# ===== Payment Service =====
+# Обрабатывает платежи
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: payment-service-authz
+  namespace: e-commerce
+spec:
+  selector:
+    matchLabels:
+      app: payment-service
+  action: ALLOW
+  rules:
+  # Доступ только от Cart Service
+  - from:
+    - source:
+        principals: ["cluster.local/ns/e-commerce/sa/cart-service"]
+    to:
+    - operation:
+        methods: ["POST"]
+        paths: ["/payment/process", "/process", "/payment/*"]
+  # Health checks
+  - to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/health", "/healthz", "/ready", "/metrics"]
+---
+# ===== Notification Service =====
+# Отправляет уведомления
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: notification-service-authz
+  namespace: e-commerce
+spec:
+  selector:
+    matchLabels:
+      app: notification-service
+  action: ALLOW
+  rules:
+  # Доступ от Cart и Payment сервисов
+  - from:
+    - source:
+        principals: 
+        - "cluster.local/ns/e-commerce/sa/cart-service"
+        - "cluster.local/ns/e-commerce/sa/payment-service"
+    to:
+    - operation:
+        methods: ["POST"]
+        paths: ["/notify", "/notification/*"]
+  # Health checks
+  - to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/health", "/healthz", "/ready", "/metrics"]

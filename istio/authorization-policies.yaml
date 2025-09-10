@@ -1,0 +1,104 @@
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: catalog-authz
+  namespace: e-commerce
+spec:
+  selector:
+    matchLabels:
+      app: catalog-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: 
+        - "cluster.local/ns/e-commerce/sa/cart-service"
+        - "cluster.local/ns/e-commerce/sa/api-gateway"
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/products", "/products/*"]
+  - to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/health", "/metrics"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: payment-authz
+  namespace: e-commerce
+spec:
+  selector:
+    matchLabels:
+      app: payment-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: ["cluster.local/ns/e-commerce/sa/cart-service"]
+    to:
+    - operation:
+        methods: ["POST"]
+        paths: ["/payment/process", "/process"]
+  - to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/health", "/metrics"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: cart-authz
+  namespace: e-commerce
+spec:
+  selector:
+    matchLabels:
+      app: cart-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals: 
+        - "cluster.local/ns/e-commerce/sa/api-gateway"
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/cart/*"]
+  - to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/health", "/metrics"]
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: gateway-authz
+  namespace: e-commerce
+spec:
+  selector:
+    matchLabels:
+      app: api-gateway
+  action: ALLOW
+  rules:
+  # Разрешаем доступ от Istio Ingress Gateway
+  - from:
+    - source:
+        principals: ["cluster.local/ns/istio-system/sa/istio-ingressgateway-service-account"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/*"]
+  # Разрешаем внешний доступ для публичного API
+  - from:
+    - source:
+        notNamespaces: ["e-commerce", "istio-system"]  # Разрешаем доступ извне service mesh
+    to:
+    - operation:
+        methods: ["GET", "POST", "PUT", "DELETE"]
+        paths: ["/api/*"]
+  # Health checks
+  - to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/health", "/metrics"]

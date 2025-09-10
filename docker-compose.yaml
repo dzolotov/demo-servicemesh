@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  catalog-service:
+    build: ./services/catalog
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - SERVICE_VERSION=v1
+    networks:
+      - e-commerce
+
+  cart-service:
+    build: ./services/cart
+    ports:
+      - "5002:5002"
+    environment:
+      - PORT=5002
+      - SERVICE_VERSION=v1
+      - CATALOG_SERVICE_URL=http://catalog-service:5001
+      - PAYMENT_SERVICE_URL=http://payment-service-v1:5003
+    depends_on:
+      - catalog-service
+      - payment-service-v1
+    networks:
+      - e-commerce
+
+  payment-service-v1:
+    build: ./services/payment
+    ports:
+      - "5003:5003"
+    environment:
+      - PORT=5003
+      - SERVICE_VERSION=v1
+    networks:
+      - e-commerce
+
+  payment-service-v2:
+    build: ./services/payment
+    ports:
+      - "5004:5003"
+    environment:
+      - PORT=5003
+      - SERVICE_VERSION=v2
+    networks:
+      - e-commerce
+  
+  api-gateway:
+    build: ./services/gateway
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - SERVICE_VERSION=v1
+      - CATALOG_SERVICE_URL=http://catalog-service:5001
+      - CART_SERVICE_URL=http://cart-service:5002
+      - PAYMENT_SERVICE_URL=http://payment-service-v1:5003
+    depends_on:
+      - catalog-service
+      - cart-service
+      - payment-service-v1
+    networks:
+      - e-commerce
+
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus-local.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    networks:
+      - e-commerce
+
+  grafana:
+    image: grafana/grafana:10.0.0
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - e-commerce
+
+networks:
+  e-commerce:
+    driver: bridge

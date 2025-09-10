@@ -1,0 +1,32 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'catalog-service'
+    static_configs:
+      - targets: ['catalog-service:5000']
+        labels:
+          service: 'catalog'
+          version: 'v1'
+
+  - job_name: 'cart-service'
+    static_configs:
+      - targets: ['cart-service:5000']
+        labels:
+          service: 'cart'
+          version: 'v1'
+
+  - job_name: 'payment-service-v1'
+    static_configs:
+      - targets: ['payment-service-v1:5000']
+        labels:
+          service: 'payment'
+          version: 'v1'
+
+  - job_name: 'payment-service-v2'
+    static_configs:
+      - targets: ['payment-service-v2:5000']
+        labels:
+          service: 'payment'
+          version: 'v2'

@@ -1,0 +1,8 @@
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: e-commerce
+spec:
+  mtls:
+    mode: STRICT  # Требуем mTLS для всего трафика внутри namespace

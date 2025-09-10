@@ -1,0 +1,100 @@
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: catalog-authz
+  namespace: e-commerce
+spec:
+  server:
+    name: catalog-service
+  client:
+    meshTLS:
+      identities:
+      - "cart-service.e-commerce.serviceaccount.identity.linkerd.cluster.local"
+      - "default.e-commerce.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: payment-authz
+  namespace: e-commerce
+spec:
+  server:
+    name: payment-service
+  client:
+    meshTLS:
+      identities:
+      - "cart-service.e-commerce.serviceaccount.identity.linkerd.cluster.local"
+      - "default.e-commerce.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: catalog-service
+  namespace: e-commerce
+spec:
+  podSelector:
+    matchLabels:
+      app: catalog
+  port: 5001
+  proxyProtocol: "HTTP/2"
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: payment-service
+  namespace: e-commerce
+spec:
+  podSelector:
+    matchLabels:
+      app: payment
+  port: 5003
+  proxyProtocol: "HTTP/2"
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: cart-service
+  namespace: e-commerce
+spec:
+  podSelector:
+    matchLabels:
+      app: cart
+  port: 5002
+  proxyProtocol: "HTTP/2"
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: cart-authz
+  namespace: e-commerce
+spec:
+  server:
+    name: cart-service
+  client:
+    meshTLS:
+      identities:
+      - "default.e-commerce.serviceaccount.identity.linkerd.cluster.local"
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: Server
+metadata:
+  name: gateway-service
+  namespace: e-commerce
+spec:
+  podSelector:
+    matchLabels:
+      app: gateway
+  port: 5000
+  proxyProtocol: "HTTP/2"
+---
+apiVersion: policy.linkerd.io/v1beta1
+kind: ServerAuthorization
+metadata:
+  name: gateway-authz
+  namespace: e-commerce
+spec:
+  server:
+    name: gateway-service
+  client:
+    meshTLS:
+      identities: []  # Gateway принимает внешний трафик
